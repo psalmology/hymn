@@ -1,0 +1,6 @@
+{
+  "name": "iOS Web OS - AI Chat & Settings",
+  "description": "A refined iOS-style mobile web application featuring full-featured AI Chat and Settings apps in an authentic Apple grayscale aesthetic.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
