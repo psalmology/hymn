@@ -14,6 +14,7 @@ import {
   ChatTab,
   ProfileSubView,
   UserProfile,
+  UserAccount,
   FavoriteMessage,
   ChatThemeSettings,
   Moment,
@@ -24,6 +25,9 @@ import { DEFAULT_API_SETTINGS, INITIAL_DEFAULT_PROFILE } from '../constants/pres
 import { DEFAULT_CHARACTER_SETTINGS, composeSystemPrompt } from '../constants/characterSettings';
 import {
   USER_PROFILE_STORAGE_KEY,
+  ACCOUNTS_STORAGE_KEY,
+  ACTIVE_ACCOUNT_ID_KEY,
+  DEFAULT_MAIN_ACCOUNT,
   FAVORITES_STORAGE_KEY,
   CHAT_THEME_STORAGE_KEY,
   DEFAULT_USER_PROFILE,
@@ -82,6 +86,7 @@ interface ChatContextType {
   personaSubView: PersonaSubView;
   selectedPersonaId: string | null;
   conversations: Conversation[];
+  allConversations: Conversation[];
   currentConversationId: string | null;
   currentConversation: Conversation | null;
   personas: Persona[];
@@ -99,7 +104,7 @@ interface ChatContextType {
   setSelectedPersonaId: (id: string | null) => void;
   selectConversation: (id: string) => void;
   createNewConversation: () => string;
-  createNewConversationWithPersona: (personaId?: string) => string;
+  createNewConversationWithPersona: (personaId?: string, targetAccountId?: string) => string;
   startChatWithPersona: (personaId: string) => void;
   deleteConversation: (id: string) => void;
   clearAllConversations: () => void;
@@ -131,6 +136,12 @@ interface ChatContextType {
   setProfileSubView: (view: ProfileSubView) => void;
   userProfile: UserProfile;
   updateUserProfile: (updates: Partial<UserProfile>) => void;
+  accounts: UserAccount[];
+  activeAccountId: string;
+  currentAccount: UserAccount;
+  switchAccount: (accountId: string) => void;
+  createAltAccount: (data: Omit<UserAccount, 'id' | 'isMain' | 'createdAt'>) => string;
+  deleteAltAccount: (accountId: string) => void;
   favorites: FavoriteMessage[];
   addFavorite: (item: Omit<FavoriteMessage, 'id'>) => void;
   removeFavorite: (messageId: string) => void;
@@ -146,10 +157,12 @@ interface ChatContextType {
     description: string,
     remark?: string,
     avatarUrl?: string,
-    bio?: string
+    bio?: string,
+    targetAccountId?: string
   ) => string;
-  importPersonaAsContact: (personaId: string) => string;
+  importPersonaAsContact: (personaId: string, targetAccountId?: string) => string;
   moments: Moment[];
+  allMoments: Moment[];
   momentsCoverUrl: string;
   setMomentsCoverUrl: (url: string) => void;
   publishMoment: (content: string, images?: string[]) => void;
@@ -183,39 +196,112 @@ const DEFAULT_STARTER_PERSONAS: Persona[] = [
   },
 ];
 
+function getInitialAccounts(): { accounts: UserAccount[]; activeId: string } {
+  let loadedAccounts: UserAccount[] = [];
+  try {
+    const raw = safeStorage.getItem(ACCOUNTS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        loadedAccounts = parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to parse accounts from storage', e);
+  }
+
+  if (loadedAccounts.length === 0) {
+    let legacyProfile = DEFAULT_MAIN_ACCOUNT;
+    try {
+      const pRaw = safeStorage.getItem(USER_PROFILE_STORAGE_KEY);
+      if (pRaw) {
+        legacyProfile = { ...DEFAULT_MAIN_ACCOUNT, ...JSON.parse(pRaw) };
+      }
+    } catch {}
+
+    const cover = safeStorage.getItem(MOMENTS_COVER_STORAGE_KEY) || '';
+    const mainAcc: UserAccount = {
+      id: 'main',
+      isMain: true,
+      avatarUrl: legacyProfile.avatarUrl || '',
+      nickname: legacyProfile.nickname || 'iOS 用户',
+      username: legacyProfile.username || '@alex_chen',
+      bio: legacyProfile.bio || '保持热爱，奔赴山海 ✨',
+      bioDetails: legacyProfile.bioDetails || '',
+      coverUrl: cover,
+      createdAt: Date.now(),
+    };
+    loadedAccounts = [mainAcc];
+    safeStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(loadedAccounts));
+  }
+
+  let activeId = safeStorage.getItem(ACTIVE_ACCOUNT_ID_KEY) || 'main';
+  if (!loadedAccounts.some((a) => a.id === activeId)) {
+    activeId = loadedAccounts[0].id;
+  }
+
+  return { accounts: loadedAccounts, activeId };
+}
+
 function getInitialConversations(): Conversation[] {
+  let convs: Conversation[] = [];
   try {
     const raw = safeStorage.getItem(CONVERSATIONS_STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        convs = parsed.map((c: Conversation) => ({
+          ...c,
+          accountId: c.accountId || 'main',
+        }));
       }
     }
   } catch (e) {
     console.error('Failed to parse conversations from storage', e);
   }
 
-  // Sensible default starter conversation
-  const welcomeId = 'conv_welcome_' + Date.now();
-  return [
-    {
-      id: welcomeId,
-      title: '欢迎体验 iOS 助手',
-      personaId: 'persona_assistant',
-      createdAt: Date.now() - 1000 * 60 * 15,
-      updatedAt: Date.now() - 1000 * 60 * 15,
-      messages: [
-        {
-          id: 'msg_welcome_1',
-          role: 'assistant',
-          content:
-            '您好！我是您的 iOS 风格智能助手。\n\n本应用所有功能真实可用：\n1. 支持自定义配置多个 API，支持智谱 AI、DeepSeek、OpenAI 等任意兼容接口；\n2. 可一键「获取模型列表」直接点选模型并自动缓存；\n3. 新增专属「人设库」，支持随时自由创建人设并绑定到对话中；\n4. 具备完整的上下文多轮记忆能力，所有数据均保存在本地。\n\n请前往「设置」配置 API 即可开启对话！',
-          timestamp: Date.now() - 1000 * 60 * 15,
-        },
-      ],
-    },
-  ];
+  if (convs.length === 0) {
+    const welcomeId = 'conv_welcome_' + Date.now();
+    convs = [
+      {
+        id: welcomeId,
+        title: '欢迎体验 iOS 助手',
+        personaId: 'persona_assistant',
+        createdAt: Date.now() - 1000 * 60 * 15,
+        updatedAt: Date.now() - 1000 * 60 * 15,
+        accountId: 'main',
+        messages: [
+          {
+            id: 'msg_welcome_1',
+            role: 'assistant',
+            content:
+              '您好！我是您的 iOS 风格智能助手。\n\n本应用所有功能真实可用：\n1. 支持自定义配置多个 API，支持智谱 AI、DeepSeek、OpenAI 等任意兼容接口；\n2. 可一键「获取模型列表」直接点选模型并自动缓存；\n3. 新增专属「人设库」，支持随时自由创建人设并绑定到对话中；\n4. 具备完整的上下文多轮记忆能力，所有数据均保存在本地。\n\n请前往「设置」配置 API 即可开启对话！',
+            timestamp: Date.now() - 1000 * 60 * 15,
+          },
+        ],
+      },
+    ];
+  }
+
+  return convs;
+}
+
+function getInitialMoments(): Moment[] {
+  try {
+    const raw = safeStorage.getItem(MOMENTS_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map((m: Moment) => ({
+          ...m,
+          accountId: m.accountId || 'main',
+        }));
+      }
+    }
+  } catch (e) {
+    console.warn('Failed to parse moments', e);
+  }
+  return INITIAL_STARTER_MOMENTS.map((m) => ({ ...m, accountId: 'main' }));
 }
 
 // Loads personas and migrates any existing conversation characterPrompt into personas
@@ -324,23 +410,177 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [chatTab, setChatTab] = useState<ChatTab>('messages');
   const [profileSubView, setProfileSubView] = useState<ProfileSubView>('main');
 
-  const [userProfile, setUserProfile] = useState<UserProfile>(() => {
-    try {
-      const raw = safeStorage.getItem(USER_PROFILE_STORAGE_KEY);
-      if (raw) return { ...DEFAULT_USER_PROFILE, ...JSON.parse(raw) };
-    } catch (e) {
-      console.warn('Failed to parse user profile', e);
-    }
-    return DEFAULT_USER_PROFILE;
+  const [accounts, setAccounts] = useState<UserAccount[]>(() => {
+    return getInitialAccounts().accounts;
   });
 
-  const updateUserProfile = useCallback((updates: Partial<UserProfile>) => {
-    setUserProfile((prev) => {
-      const next = { ...prev, ...updates };
-      safeStorage.setItem(USER_PROFILE_STORAGE_KEY, JSON.stringify(next));
-      return next;
-    });
-  }, []);
+  const [activeAccountId, setActiveAccountId] = useState<string>(() => {
+    return getInitialAccounts().activeId;
+  });
+
+  const currentAccount = useMemo(() => {
+    return accounts.find((a) => a.id === activeAccountId) || accounts[0] || DEFAULT_MAIN_ACCOUNT;
+  }, [accounts, activeAccountId]);
+
+  // All conversations across accounts
+  const [allConversations, setAllConversations] = useState<Conversation[]>(() => {
+    return getInitialConversations();
+  });
+
+  // Current active account conversations
+  const conversations = useMemo(() => {
+    return allConversations.filter((c) => (c.accountId || 'main') === activeAccountId);
+  }, [allConversations, activeAccountId]);
+
+  // Helper updater for allConversations
+  const setConversations = useCallback(
+    (updater: React.SetStateAction<Conversation[]>) => {
+      setAllConversations(updater);
+    },
+    []
+  );
+
+  // All moments across accounts
+  const [allMoments, setAllMoments] = useState<Moment[]>(() => {
+    return getInitialMoments();
+  });
+
+  // Current active account moments
+  const moments = useMemo(() => {
+    return allMoments.filter((m) => (m.accountId || 'main') === activeAccountId);
+  }, [allMoments, activeAccountId]);
+
+  // Helper updater for allMoments
+  const setMoments = useCallback(
+    (updater: React.SetStateAction<Moment[]>) => {
+      setAllMoments(updater);
+    },
+    []
+  );
+
+  // Dynamic userProfile for current active account
+  const userProfile: UserProfile = useMemo(() => {
+    const accMoments = allMoments.filter((m) => (m.accountId || 'main') === activeAccountId);
+    const myPostsCount = accMoments.filter((m) => m.isUser).length;
+    const myLikesCount = accMoments
+      .filter((m) => m.isUser)
+      .reduce((acc, m) => acc + (m.likes?.length || 0), 0);
+    const contactsCount = allConversations.filter(
+      (c) => (c.accountId || 'main') === activeAccountId
+    ).length;
+
+    return {
+      ...currentAccount,
+      postsCount: myPostsCount,
+      contactsCount,
+      likesCount: myLikesCount,
+    };
+  }, [currentAccount, allMoments, allConversations, activeAccountId]);
+
+  const updateUserProfile = useCallback(
+    (updates: Partial<UserProfile>) => {
+      setAccounts((prev) => {
+        const next = prev.map((acc) => {
+          if (acc.id === activeAccountId) {
+            return {
+              ...acc,
+              ...updates,
+            };
+          }
+          return acc;
+        });
+        safeStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(next));
+        return next;
+      });
+    },
+    [activeAccountId]
+  );
+
+  const momentsCoverUrl = currentAccount.coverUrl || '';
+  const setMomentsCoverUrl = useCallback(
+    (url: string) => {
+      setAccounts((prev) => {
+        const next = prev.map((acc) => {
+          if (acc.id === activeAccountId) {
+            return { ...acc, coverUrl: url };
+          }
+          return acc;
+        });
+        safeStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(next));
+        return next;
+      });
+    },
+    [activeAccountId]
+  );
+
+  const switchAccount = useCallback(
+    (accountId: string) => {
+      setActiveAccountId(accountId);
+      safeStorage.setItem(ACTIVE_ACCOUNT_ID_KEY, accountId);
+      const targetConvs = allConversations.filter(
+        (c) => (c.accountId || 'main') === accountId
+      );
+      setCurrentConversationId(targetConvs[0]?.id || null);
+    },
+    [allConversations]
+  );
+
+  const createAltAccount = useCallback(
+    (data: Omit<UserAccount, 'id' | 'isMain' | 'createdAt'>): string => {
+      const newId = `alt_${Date.now()}`;
+      const newAccount: UserAccount = {
+        id: newId,
+        isMain: false,
+        avatarUrl: data.avatarUrl || '',
+        nickname: data.nickname || '小号',
+        username: data.username || `@alt_${newId.slice(-4)}`,
+        bio: data.bio || '',
+        bioDetails: data.bioDetails || '',
+        coverUrl: '',
+        createdAt: Date.now(),
+      };
+      setAccounts((prev) => {
+        const next = [...prev, newAccount];
+        safeStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(next));
+        return next;
+      });
+      return newId;
+    },
+    []
+  );
+
+  const deleteAltAccount = useCallback(
+    (accountId: string) => {
+      const target = accounts.find((a) => a.id === accountId);
+      if (!target || target.isMain) return;
+
+      setAccounts((prev) => {
+        const next = prev.filter((a) => a.id !== accountId);
+        safeStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(next));
+        return next;
+      });
+
+      setAllConversations((prev) => {
+        const next = prev.filter((c) => (c.accountId || 'main') !== accountId);
+        safeStorage.setItem(CONVERSATIONS_STORAGE_KEY, JSON.stringify(next));
+        return next;
+      });
+
+      setAllMoments((prev) => {
+        const next = prev.filter((m) => (m.accountId || 'main') !== accountId);
+        safeStorage.setItem(MOMENTS_STORAGE_KEY, JSON.stringify(next));
+        return next;
+      });
+
+      if (activeAccountId === accountId) {
+        setActiveAccountId('main');
+        safeStorage.setItem(ACTIVE_ACCOUNT_ID_KEY, 'main');
+        const mainConvs = allConversations.filter((c) => (c.accountId || 'main') === 'main');
+        setCurrentConversationId(mainConvs[0]?.id || null);
+      }
+    },
+    [accounts, activeAccountId, allConversations]
+  );
 
   const [favorites, setFavorites] = useState<FavoriteMessage[]>(() => {
     try {
@@ -401,52 +641,20 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
     });
   }, []);
 
-  // Moments state with persistence
-  const [moments, setMoments] = useState<Moment[]>(() => {
-    try {
-      const raw = safeStorage.getItem(MOMENTS_STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) return parsed;
-      }
-    } catch (e) {
-      console.warn('Failed to parse moments', e);
-    }
-    return INITIAL_STARTER_MOMENTS;
-  });
-
-  const [momentsCoverUrl, setMomentsCoverUrlState] = useState<string>(() => {
-    try {
-      return safeStorage.getItem(MOMENTS_COVER_STORAGE_KEY) || '';
-    } catch {
-      return '';
-    }
-  });
-
-  const setMomentsCoverUrl = useCallback((url: string) => {
-    setMomentsCoverUrlState(url);
-    safeStorage.setItem(MOMENTS_COVER_STORAGE_KEY, url);
-  }, []);
-
   const [settingsSubView, setSettingsSubView] = useState<SettingsSubView>('main');
   const [personaSubView, setPersonaSubView] = useState<PersonaSubView>('list');
   const [selectedPersonaId, setSelectedPersonaId] = useState<string | null>(null);
 
-  // Initialize conversations and personas with automatic migration
-  const [conversations, setConversations] = useState<Conversation[]>(() => {
-    return getInitialConversations();
-  });
-
   const [personas, setPersonas] = useState<Persona[]>(() => {
-    const { personas: initialP, updatedConvs } = getInitialPersonasAndMigrate(conversations);
-    if (updatedConvs !== conversations) {
-      setTimeout(() => setConversations(updatedConvs), 0);
+    const { personas: initialP, updatedConvs } = getInitialPersonasAndMigrate(allConversations);
+    if (updatedConvs !== allConversations) {
+      setTimeout(() => setAllConversations(updatedConvs), 0);
     }
     return initialP;
   });
 
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(() => {
-    return conversations[0]?.id || null;
+    return allConversations.filter((c) => (c.accountId || 'main') === getInitialAccounts().activeId)[0]?.id || null;
   });
 
   const { profiles: initialProfiles, activeId: initialActiveId } = useMemo(
@@ -547,54 +755,54 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       createdAt: Date.now(),
       updatedAt: Date.now(),
       messages: [],
+      accountId: activeAccountId,
       settings: { ...DEFAULT_CHARACTER_SETTINGS },
     };
     setConversations((prev) => [newConv, ...prev]);
     setCurrentConversationId(newId);
     setChatSubView('room');
     return newId;
-  }, []);
+  }, [activeAccountId]);
 
   const createNewConversationWithPersona = useCallback(
-    (personaId?: string) => {
+    (personaId?: string, targetAccountId?: string) => {
+      const accId = targetAccountId || activeAccountId;
       const targetP = personaId ? personas.find((p) => p.id === personaId) : undefined;
       const newId = 'conv_' + Date.now();
       const newConv: Conversation = {
         id: newId,
         title: targetP ? targetP.name : '新对话',
         personaId: personaId || undefined,
+        avatarUrl: targetP?.avatarUrl,
+        bio: targetP?.bio || targetP?.description,
         createdAt: Date.now(),
         updatedAt: Date.now(),
         messages: [],
-        settings: { ...DEFAULT_CHARACTER_SETTINGS },
+        accountId: accId,
+        settings: { ...DEFAULT_CHARACTER_SETTINGS, avatarUrl: targetP?.avatarUrl },
       };
       setConversations((prev) => [newConv, ...prev]);
       setCurrentConversationId(newId);
       setChatSubView('room');
       return newId;
     },
-    [personas]
+    [personas, activeAccountId]
   );
 
   const startChatWithPersona = useCallback(
     (personaId: string) => {
-      const targetP = personas.find((p) => p.id === personaId);
-      const newId = 'conv_' + Date.now();
-      const newConv: Conversation = {
-        id: newId,
-        title: targetP ? targetP.name : '新对话',
-        personaId: personaId,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        messages: [],
-        settings: { ...DEFAULT_CHARACTER_SETTINGS },
-      };
-      setConversations((prev) => [newConv, ...prev]);
-      setCurrentConversationId(newId);
+      const existing = allConversations.find(
+        (c) => (c.accountId || 'main') === activeAccountId && c.personaId === personaId
+      );
+      if (existing) {
+        setCurrentConversationId(existing.id);
+      } else {
+        createNewConversationWithPersona(personaId, activeAccountId);
+      }
       setActiveApp('chat');
       setChatSubView('room');
     },
-    [personas]
+    [allConversations, activeAccountId, createNewConversationWithPersona]
   );
 
   const deleteConversation = useCallback((id: string) => {
@@ -609,10 +817,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const clearAllConversations = useCallback(() => {
-    setConversations([]);
+    setConversations((prev) => prev.filter((c) => (c.accountId || 'main') !== activeAccountId));
     setCurrentConversationId(null);
     setChatSubView('list');
-  }, []);
+  }, [activeAccountId]);
 
   const updateConversationRemark = useCallback((id: string, remark: string) => {
     setConversations((prev) =>
@@ -684,8 +892,10 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       description: string,
       remark?: string,
       avatarUrl?: string,
-      bio?: string
+      bio?: string,
+      targetAccountId?: string
     ) => {
+      const accId = targetAccountId || activeAccountId;
       const pId = 'persona_' + Date.now();
       const newPersona: Persona = {
         id: pId,
@@ -709,18 +919,22 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         createdAt: Date.now(),
         updatedAt: Date.now(),
         messages: [],
+        accountId: accId,
         settings: { ...DEFAULT_CHARACTER_SETTINGS, avatarUrl, bio },
       };
       setConversations((prev) => [newConv, ...prev]);
       setCurrentConversationId(convId);
       return convId;
     },
-    []
+    [activeAccountId]
   );
 
   const importPersonaAsContact = useCallback(
-    (personaId: string) => {
-      const existingConv = conversations.find((c) => c.personaId === personaId);
+    (personaId: string, targetAccountId?: string) => {
+      const accId = targetAccountId || activeAccountId;
+      const existingConv = allConversations.find(
+        (c) => (c.accountId || 'main') === accId && c.personaId === personaId
+      );
       if (existingConv) {
         setCurrentConversationId(existingConv.id);
         return existingConv.id;
@@ -737,13 +951,14 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         createdAt: Date.now(),
         updatedAt: Date.now(),
         messages: [],
+        accountId: accId,
         settings: { ...DEFAULT_CHARACTER_SETTINGS, avatarUrl: targetP?.avatarUrl },
       };
       setConversations((prev) => [newConv, ...prev]);
       setCurrentConversationId(newId);
       return newId;
     },
-    [conversations, personas]
+    [allConversations, personas, activeAccountId]
   );
 
   const updateCharacterSettings = useCallback(
@@ -991,7 +1206,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setIsGenerating(true);
       setCurrentError(null);
 
-      const targetConv = (conversations || []).find((c) => c.id === convId);
+      const targetConv = (allConversations || []).find((c) => c.id === convId);
       const settings = targetConv?.settings || DEFAULT_CHARACTER_SETTINGS;
 
       // Dynamically resolve persona content from Personas Library
@@ -1000,11 +1215,19 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         : undefined;
       const personaDescription = boundPersona?.description || settings.characterPrompt || '';
 
-      // Compose prompt: "人设内容 + 多条回复规则", without reply length or speech style
+      const convAccountId = targetConv?.accountId || 'main';
+      const convAccount = accounts.find((a) => a.id === convAccountId) || currentAccount;
+
+      // Compose prompt: "人设内容 + 多条回复规则" + 账号自我介绍与设定 (提供给 AI)
       const systemPrompt = composeSystemPrompt(
         personaDescription,
         settings.allowMultipleBubbles,
-        activeProfile.systemPrompt || DEFAULT_API_SETTINGS.systemPrompt
+        activeProfile.systemPrompt || DEFAULT_API_SETTINGS.systemPrompt,
+        {
+          nickname: convAccount.nickname,
+          bio: convAccount.bio,
+          bioDetails: convAccount.bioDetails,
+        }
       );
 
       // Prepare messages for API: if a user message has a quote, prefix with quote context
@@ -1283,14 +1506,15 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const newMoment: Moment = {
         id: 'moment_' + Date.now(),
         authorId: 'user',
-        authorName: userProfile.nickname || '我',
-        authorAvatar: userProfile.avatarUrl || '',
+        authorName: currentAccount.nickname || userProfile.nickname || '我',
+        authorAvatar: currentAccount.avatarUrl || userProfile.avatarUrl || '',
         isUser: true,
         content: trimmed,
         images,
         likes: [],
         comments: [],
         createdAt: Date.now(),
+        accountId: activeAccountId,
       };
 
       setMoments((prev) => {
@@ -1351,10 +1575,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
               const res = await sendChatCompletion(
                 activeProfile,
                 [
-                  { id: 'sys_' + Date.now(), role: 'system', content: systemPrompt, timestamp: Date.now() },
                   { id: 'usr_' + Date.now(), role: 'user', content: userPrompt, timestamp: Date.now() },
                 ],
-                300
+                systemPrompt
               );
               const aiComment = res.content;
 
@@ -1455,10 +1678,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
               const res = await sendChatCompletion(
                 activeProfile,
                 [
-                  { id: 'sys_' + Date.now(), role: 'system', content: systemPrompt, timestamp: Date.now() },
                   { id: 'usr_' + Date.now(), role: 'user', content: `用户回复了你：“${trimmed}”，请回复。`, timestamp: Date.now() },
                 ],
-                250
+                systemPrompt
               );
               const aiReply = res.content;
 
@@ -1542,10 +1764,9 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
               const res = await sendChatCompletion(
                 activeProfile,
                 [
-                  { id: 'sys_' + Date.now(), role: 'system', content: systemPrompt, timestamp: Date.now() },
                   { id: 'usr_' + Date.now(), role: 'user', content: '请发布一条符合你人设的最新动态。', timestamp: Date.now() },
                 ],
-                300
+                systemPrompt
               );
               const aiPost = res.content;
 
@@ -1562,6 +1783,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
                   likes: [],
                   comments: [],
                   createdAt: Date.now(),
+                  accountId: activeAccountId,
                 };
 
                 setMoments((prev) => {
@@ -1639,6 +1861,13 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfileSubView,
         userProfile,
         updateUserProfile,
+        accounts,
+        activeAccountId,
+        currentAccount,
+        switchAccount,
+        createAltAccount,
+        deleteAltAccount,
+        allConversations,
         favorites,
         addFavorite,
         removeFavorite,
@@ -1649,6 +1878,7 @@ export const ChatProvider: React.FC<{ children: React.ReactNode }> = ({ children
         createContactWithPersona,
         importPersonaAsContact,
         moments,
+        allMoments,
         momentsCoverUrl,
         setMomentsCoverUrl,
         publishMoment,

@@ -100,12 +100,12 @@ export const PublishMomentModal: React.FC<PublishMomentModalProps> = ({
       />
 
       {/* Top Header */}
-      <div className="pt-12 pb-2 px-4 bg-white/95 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-20">
+      <div className="ios-safe-header pb-2 px-4 bg-white/95 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-20">
         <div className="flex items-center justify-between h-9">
           <button
             type="button"
             onClick={onClose}
-            className="text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity cursor-pointer"
+            className="ios-back-btn text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity pr-2 cursor-pointer"
           >
             取消
           </button>
@@ -116,13 +116,15 @@ export const PublishMomentModal: React.FC<PublishMomentModalProps> = ({
             type="button"
             disabled={!canPublish || isProcessing}
             onClick={handlePublish}
-            className={`text-[15px] font-semibold px-3 py-1 rounded-full transition-all cursor-pointer ${
+            className={`min-w-[44px] min-h-[44px] flex items-center justify-end text-[15px] font-semibold transition-all cursor-pointer ${
               canPublish && !isProcessing
-                ? 'bg-neutral-900 text-white active:scale-95 shadow-xs'
+                ? 'text-neutral-900 active:opacity-60'
                 : 'text-neutral-400 cursor-not-allowed'
             }`}
           >
-            {isProcessing ? '处理中...' : '发布'}
+            <span className={`px-3 py-1 rounded-full ${canPublish && !isProcessing ? 'bg-neutral-900 text-white shadow-xs' : 'bg-neutral-200 text-neutral-400'}`}>
+              {isProcessing ? '处理中...' : '发布'}
+            </span>
           </button>
         </div>
       </div>

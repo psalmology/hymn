@@ -1,10 +1,12 @@
 import React, { useState, useRef } from 'react';
-import { Camera } from 'lucide-react';
+import { Camera, Trash2 } from 'lucide-react';
 import { UserProfile } from '../../types';
+import { IOSAlert } from '../common/IOSAlert';
 
 interface EditProfileModalProps {
   initialProfile: UserProfile;
-  onSave: (updated: UserProfile) => void;
+  onSave: (updated: Partial<UserProfile>) => void;
+  onDeleteAltAccount?: (accountId: string) => void;
   onClose: () => void;
 }
 
@@ -48,12 +50,15 @@ function compressAvatar(file: File, maxDim: number = 400, quality: number = 0.88
 export const EditProfileModal: React.FC<EditProfileModalProps> = ({
   initialProfile,
   onSave,
+  onDeleteAltAccount,
   onClose,
 }) => {
   const [avatarUrl, setAvatarUrl] = useState(initialProfile.avatarUrl || '');
   const [nickname, setNickname] = useState(initialProfile.nickname || '');
   const [username, setUsername] = useState(initialProfile.username || '');
   const [bio, setBio] = useState(initialProfile.bio || '');
+  const [bioDetails, setBioDetails] = useState(initialProfile.bioDetails || '');
+  const [showDeleteAlert, setShowDeleteAlert] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -76,11 +81,11 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
     }
 
     onSave({
-      ...initialProfile,
       avatarUrl,
       nickname: nickname.trim() || initialProfile.nickname || 'iOS 用户',
       username: cleanUsername || initialProfile.username || '@user',
       bio: bio.trim(),
+      bioDetails: bioDetails.trim(),
     });
     onClose();
   };
@@ -98,22 +103,22 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       />
 
       {/* Header */}
-      <div className="pt-12 pb-2 px-4 bg-white/95 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-20">
+      <div className="ios-safe-header pb-2 px-4 bg-white/95 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-20">
         <div className="flex items-center justify-between h-9">
           <button
             type="button"
             onClick={onClose}
-            className="text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity cursor-pointer"
+            className="ios-back-btn text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity -ml-2.5 px-2.5"
           >
             取消
           </button>
           <h2 className="text-[16px] font-semibold text-neutral-900">
-            Edit Profile
+            {initialProfile.isMain ? '编辑资料' : '编辑小号资料'}
           </h2>
           <button
             type="button"
             onClick={handleSave}
-            className="text-[15px] font-semibold text-neutral-900 hover:text-black active:opacity-60 transition-opacity cursor-pointer"
+            className="min-w-[44px] min-h-[44px] -mr-2.5 px-2.5 flex items-center justify-end text-[15px] font-semibold text-neutral-900 hover:text-black active:opacity-60 transition-opacity cursor-pointer"
           >
             完成
           </button>
@@ -121,7 +126,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
       </div>
 
       {/* Content Form */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-6">
+      <div className="flex-1 overflow-y-auto p-4 space-y-5">
         {/* Avatar Picker */}
         <div className="flex flex-col items-center justify-center pt-2">
           <div
@@ -152,7 +157,7 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
           </button>
         </div>
 
-        {/* Inputs Group */}
+        {/* Inputs Group 1 */}
         <div className="bg-white rounded-2xl shadow-xs overflow-hidden divide-y divide-black/[0.06]">
           {/* 昵称 */}
           <div className="p-3.5 flex items-center justify-between">
@@ -199,7 +204,59 @@ export const EditProfileModal: React.FC<EditProfileModalProps> = ({
             />
           </div>
         </div>
+
+        {/* Inputs Group 2: 自我介绍 (多行，选填，说明"我是谁、有什么设定"，会提供给 AI) */}
+        <div className="bg-white rounded-2xl p-4 shadow-xs space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[14px] font-medium text-neutral-800">
+              自我介绍与设定
+            </span>
+            <span className="text-[11px] text-neutral-400">提供给 AI</span>
+          </div>
+          <p className="text-[12px] text-neutral-400 leading-normal">
+            说明“我是谁、有什么设定”，在此账号下与 AI 聊天时，AI 会感知您的该设定。
+          </p>
+          <textarea
+            rows={4}
+            value={bioDetails}
+            onChange={(e) => setBioDetails(e.target.value)}
+            placeholder="例如：我是一名在读研究生，性格开朗；请以学长口吻与我交流..."
+            className="w-full mt-2 p-3 text-[14px] bg-neutral-100 rounded-xl text-neutral-900 placeholder:text-neutral-400 outline-none focus:bg-neutral-200/70 transition-colors resize-none leading-relaxed font-sans"
+          />
+        </div>
+
+        {/* 小号删除按钮 (主号不能删除) */}
+        {!initialProfile.isMain && (
+          <div className="pt-2 pb-4 text-center">
+            <button
+              type="button"
+              onClick={() => setShowDeleteAlert(true)}
+              className="text-[15px] font-medium text-[#FF3B30] hover:text-red-600 active:opacity-60 transition-opacity cursor-pointer py-2 px-4"
+            >
+              删除小号
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Delete Alt Account Confirmation Alert */}
+      <IOSAlert
+        isOpen={showDeleteAlert}
+        title="删除小号"
+        message="确定要删除该小号吗？删除后将同时清空该小号的好友、聊天记录和动态，此操作不可撤销。"
+        confirmText="删除"
+        cancelText="取消"
+        isDestructive={true}
+        onConfirm={() => {
+          if (onDeleteAltAccount && initialProfile.id) {
+            onDeleteAltAccount(initialProfile.id);
+          }
+          setShowDeleteAlert(false);
+          onClose();
+        }}
+        onCancel={() => setShowDeleteAlert(false)}
+      />
     </div>
   );
 };
+

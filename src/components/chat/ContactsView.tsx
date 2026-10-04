@@ -11,7 +11,7 @@ import { useChat } from '../../context/ChatContext';
 import { Conversation } from '../../types';
 import { getInitialLetter } from '../../utils/pinyin';
 import { ContactProfileView } from './ContactProfileView';
-import { AddContactModal } from './AddContactModal';
+import { AddFriendModal } from './AddFriendModal';
 
 const ALPHABET = [
   'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
@@ -109,15 +109,15 @@ export const ContactsView: React.FC = () => {
   return (
     <div className="w-full h-full flex flex-col bg-[#F2F2F7] select-none relative">
       {/* Top Header */}
-      <div className="pt-12 pb-2 px-4 bg-[#F2F2F7]/95 backdrop-blur-xl border-b border-black/[0.06] sticky top-0 z-20">
-        <div className="flex items-center justify-between h-8 mb-1">
+      <div className="ios-safe-header pb-2 px-4 bg-[#F2F2F7]/95 backdrop-blur-xl border-b border-black/[0.06] sticky top-0 z-20">
+        <div className="flex items-center justify-between h-9 mb-1">
           <button
             type="button"
             onClick={goHome}
-            className="flex items-center text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity -ml-1.5 cursor-pointer"
+            className="ios-back-btn text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity pr-2 cursor-pointer"
             title="返回桌面 (Esc)"
           >
-            <ChevronLeft size={22} className="-mr-1 text-neutral-700" />
+            <ChevronLeft size={22} className="-mr-0.5 text-neutral-700" />
             <span>返回</span>
           </button>
         </div>
@@ -389,17 +389,11 @@ export const ContactsView: React.FC = () => {
         </div>
       )}
 
-      {/* Add Contact Modal */}
-      {showAddModal && (
-        <AddContactModal
-          onClose={() => setShowAddModal(false)}
-          onOpenChat={(convId) => {
-            setShowAddModal(false);
-            selectConversation(convId);
-            setChatSubView('room');
-          }}
-        />
-      )}
+      {/* Add Friend Modal */}
+      <AddFriendModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+      />
     </div>
   );
 };

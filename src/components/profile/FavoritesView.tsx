@@ -55,14 +55,14 @@ export const FavoritesView: React.FC = () => {
       )}
 
       {/* Header */}
-      <div className="pt-12 pb-2 px-4 bg-[#F2F2F7]/95 backdrop-blur-xl border-b border-black/[0.06] sticky top-0 z-20">
-        <div className="flex items-center justify-between h-8 mb-1">
+      <div className="ios-safe-header pb-2 px-4 bg-[#F2F2F7]/95 backdrop-blur-xl border-b border-black/[0.06] sticky top-0 z-20">
+        <div className="flex items-center justify-between h-9 mb-1">
           <button
             type="button"
             onClick={() => setProfileSubView('main')}
-            className="flex items-center text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity -ml-1.5 cursor-pointer"
+            className="ios-back-btn text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity pr-2 cursor-pointer"
           >
-            <ChevronLeft size={22} className="-mr-1 text-neutral-700" />
+            <ChevronLeft size={22} className="-mr-0.5 text-neutral-700" />
             <span>返回</span>
           </button>
         </div>

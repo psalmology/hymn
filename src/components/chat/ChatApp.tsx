@@ -68,7 +68,13 @@ export const ChatApp: React.FC = () => {
 
       {/* 4-Item Bottom Navigation Bar (Visible only when in 'list' mode) */}
       {chatSubView === 'list' && (
-        <div className="h-[52px] bg-[#F2F2F7] border-t border-black/[0.08] flex items-center justify-around z-30 shrink-0 select-none pb-0">
+        <div
+          className="bg-[#F2F2F7] border-t border-black/[0.08] flex items-center justify-around z-30 shrink-0 select-none"
+          style={{
+            height: 'calc(52px + env(safe-area-inset-bottom, 0px))',
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+          }}
+        >
           {/* Tab 1: 消息 */}
           <button
             type="button"

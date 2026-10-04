@@ -1,15 +1,19 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Bookmark, Palette, User, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Bookmark, Palette, User, Users, Sparkles } from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
 import { EditProfileModal } from './EditProfileModal';
 import { FavoritesView } from './FavoritesView';
 import { AestheticsView } from './AestheticsView';
 import { MomentsView } from '../moments/MomentsView';
+import { AccountSwitcherSheet } from './AccountSwitcherSheet';
+import { CreateAltModal } from '../chat/CreateAltModal';
 
 export const ProfileView: React.FC = () => {
   const {
     userProfile,
     updateUserProfile,
+    currentAccount,
+    deleteAltAccount,
     favorites,
     conversations,
     moments,
@@ -19,6 +23,8 @@ export const ProfileView: React.FC = () => {
   } = useChat();
 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isAccountSheetOpen, setIsAccountSheetOpen] = useState(false);
+  const [isCreateAltOpen, setIsCreateAltOpen] = useState(false);
 
   // Subviews routing:
   if (profileSubView === 'favorites') {
@@ -48,15 +54,15 @@ export const ProfileView: React.FC = () => {
   return (
     <div className="w-full h-full flex flex-col bg-[#F2F2F7] select-none">
       {/* Top Header */}
-      <div className="pt-12 pb-2 px-4 bg-[#F2F2F7]/95 backdrop-blur-xl border-b border-black/[0.06] sticky top-0 z-20">
-        <div className="flex items-center justify-between h-8 mb-1">
+      <div className="ios-safe-header pb-2 px-4 bg-[#F2F2F7]/95 backdrop-blur-xl border-b border-black/[0.06] sticky top-0 z-20">
+        <div className="flex items-center justify-between h-9 mb-1">
           <button
             type="button"
             onClick={goHome}
-            className="flex items-center text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity -ml-1.5 cursor-pointer"
+            className="ios-back-btn text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity pr-2 cursor-pointer"
             title="返回桌面 (Esc)"
           >
-            <ChevronLeft size={22} className="-mr-1 text-neutral-700" />
+            <ChevronLeft size={22} className="-mr-0.5 text-neutral-700" />
             <span>返回</span>
           </button>
         </div>
@@ -196,6 +202,28 @@ export const ProfileView: React.FC = () => {
               <ChevronRight size={18} className="text-neutral-400" />
             </div>
           </button>
+
+          {/* Row 3: 切换账号 (红棕色文字) */}
+          <button
+            type="button"
+            onClick={() => setIsAccountSheetOpen(true)}
+            className="w-full px-4 py-3.5 flex items-center justify-between hover:bg-neutral-50 active:bg-neutral-100 transition-colors cursor-pointer"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-xl bg-[#8A3324]/10 text-[#8A3324] flex items-center justify-center">
+                <Users size={16} />
+              </div>
+              <span className="text-[15px] font-medium text-[#8A3324]">
+                切换账号
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 text-neutral-400">
+              <span className="text-[12px] text-neutral-400">
+                {currentAccount.nickname}
+              </span>
+              <ChevronRight size={18} className="text-neutral-400" />
+            </div>
+          </button>
         </div>
       </div>
 
@@ -204,9 +232,27 @@ export const ProfileView: React.FC = () => {
         <EditProfileModal
           initialProfile={userProfile}
           onSave={updateUserProfile}
+          onDeleteAltAccount={!currentAccount.isMain ? () => deleteAltAccount(currentAccount.id) : undefined}
           onClose={() => setIsEditModalOpen(false)}
         />
       )}
+
+      {/* Account Switcher Sheet */}
+      <AccountSwitcherSheet
+        isOpen={isAccountSheetOpen}
+        onClose={() => setIsAccountSheetOpen(false)}
+        onCreateAlt={() => {
+          setIsAccountSheetOpen(false);
+          setIsCreateAltOpen(true);
+        }}
+      />
+
+      {/* Create Alt Modal (from Profile directly) */}
+      <CreateAltModal
+        isOpen={isCreateAltOpen}
+        mode="direct_create"
+        onClose={() => setIsCreateAltOpen(false)}
+      />
     </div>
   );
 };

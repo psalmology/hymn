@@ -5,6 +5,11 @@ import { HomeScreen } from './components/HomeScreen';
 import { ChatApp } from './components/chat/ChatApp';
 import { SettingsApp } from './components/settings/SettingsApp';
 import { PersonasApp } from './components/personas/PersonasApp';
+import { CalculatorApp } from './components/calculator/CalculatorApp';
+import { NotesApp } from './components/notes/NotesApp';
+import { RemindersApp } from './components/reminders/RemindersApp';
+import { ClockApp } from './components/clock/ClockApp';
+import { WeatherApp } from './components/weather/WeatherApp';
 
 const AppContent: React.FC = () => {
   const { activeApp, goHome } = useChat();
@@ -21,7 +26,7 @@ const AppContent: React.FC = () => {
   }, [goHome]);
 
   return (
-    <div className="w-full h-full relative overflow-hidden bg-[#F2F2F7]">
+    <div className="w-full h-full relative overflow-hidden bg-transparent">
       {/* Home Screen */}
       <div
         className={`absolute inset-0 w-full h-full transition-all duration-300 ease-out ${
@@ -64,6 +69,61 @@ const AppContent: React.FC = () => {
         }`}
       >
         {activeApp === 'personas' && <PersonasApp />}
+      </div>
+
+      {/* Calculator App */}
+      <div
+        className={`absolute inset-0 w-full h-full transition-all duration-300 ease-out ${
+          activeApp === 'calculator'
+            ? 'opacity-100 scale-100 pointer-events-auto z-20'
+            : 'opacity-0 scale-105 pointer-events-none z-0'
+        }`}
+      >
+        {activeApp === 'calculator' && <CalculatorApp />}
+      </div>
+
+      {/* Notes App */}
+      <div
+        className={`absolute inset-0 w-full h-full transition-all duration-300 ease-out ${
+          activeApp === 'notes'
+            ? 'opacity-100 scale-100 pointer-events-auto z-20'
+            : 'opacity-0 scale-105 pointer-events-none z-0'
+        }`}
+      >
+        {activeApp === 'notes' && <NotesApp />}
+      </div>
+
+      {/* Reminders App */}
+      <div
+        className={`absolute inset-0 w-full h-full transition-all duration-300 ease-out ${
+          activeApp === 'reminders'
+            ? 'opacity-100 scale-100 pointer-events-auto z-20'
+            : 'opacity-0 scale-105 pointer-events-none z-0'
+        }`}
+      >
+        {activeApp === 'reminders' && <RemindersApp />}
+      </div>
+
+      {/* Clock App */}
+      <div
+        className={`absolute inset-0 w-full h-full transition-all duration-300 ease-out ${
+          activeApp === 'clock'
+            ? 'opacity-100 scale-100 pointer-events-auto z-20'
+            : 'opacity-0 scale-105 pointer-events-none z-0'
+        }`}
+      >
+        {activeApp === 'clock' && <ClockApp />}
+      </div>
+
+      {/* Weather App */}
+      <div
+        className={`absolute inset-0 w-full h-full transition-all duration-300 ease-out ${
+          activeApp === 'weather'
+            ? 'opacity-100 scale-100 pointer-events-auto z-20'
+            : 'opacity-0 scale-105 pointer-events-none z-0'
+        }`}
+      >
+        {activeApp === 'weather' && <WeatherApp />}
       </div>
     </div>
   );

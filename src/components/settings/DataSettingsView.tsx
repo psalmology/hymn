@@ -67,14 +67,14 @@ export const DataSettingsView: React.FC = () => {
   return (
     <div className="w-full h-full flex flex-col bg-[#F2F2F7] select-none overflow-y-auto">
       {/* Navigation Header */}
-      <div className="pt-11 px-3 bg-white/90 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-30 shrink-0">
+      <div className="ios-safe-header px-4 bg-white/90 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-30 shrink-0">
         <div className="h-11 flex items-center justify-between">
           <button
             type="button"
             onClick={() => setSettingsSubView('main')}
-            className="flex items-center text-[15px] font-normal text-neutral-800 hover:text-neutral-900 active:opacity-60 transition-opacity -ml-1 cursor-pointer"
+            className="ios-back-btn text-[15px] font-normal text-neutral-800 hover:text-neutral-900 active:opacity-60 transition-opacity pr-2 cursor-pointer"
           >
-            <ChevronLeft size={22} className="-mr-1 text-neutral-700" />
+            <ChevronLeft size={22} className="-mr-0.5 text-neutral-700" />
             <span>设置</span>
           </button>
 

@@ -27,14 +27,14 @@ export const PersonaCreateView: React.FC = () => {
   return (
     <div className="w-full h-full flex flex-col bg-[#F2F2F7] select-none overflow-y-auto">
       {/* Navigation Header */}
-      <div className="pt-11 px-3 bg-white/95 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-30 shrink-0">
+      <div className="ios-safe-header px-4 bg-white/95 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-30 shrink-0">
         <div className="h-11 flex items-center justify-between">
           <button
             type="button"
             onClick={() => setPersonaSubView('list')}
-            className="flex items-center text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity -ml-1 cursor-pointer"
+            className="ios-back-btn text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity pr-2 cursor-pointer"
           >
-            <ChevronLeft size={22} className="-mr-1 text-neutral-700" />
+            <ChevronLeft size={22} className="-mr-0.5 text-neutral-700" />
             <span>返回</span>
           </button>
 
@@ -45,7 +45,7 @@ export const PersonaCreateView: React.FC = () => {
           <button
             type="button"
             onClick={handleSave}
-            className="text-[15px] font-semibold text-neutral-900 hover:text-black active:opacity-60 cursor-pointer px-1"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-end text-[15px] font-semibold text-neutral-900 hover:text-black active:opacity-60 cursor-pointer"
           >
             保存
           </button>

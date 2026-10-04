@@ -296,9 +296,9 @@ export const ChatRoom: React.FC = () => {
       }}
     >
       {/* Navigation Header - status bar space reserved */}
-      <div className="pt-11 px-3 bg-white/95 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-30 shrink-0">
+      <div className="ios-safe-header px-4 bg-white/95 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-30 shrink-0">
         <div className="h-11 flex items-center justify-between">
-          {/* Left: ‹ 聊天 or 取消 (in multi-select) */}
+          {/* Left: ‹ 聊天 or 取消 (in multi-select) with >=44x44 touch hitbox and >=12px left margin */}
           {isMultiSelect ? (
             <button
               type="button"
@@ -306,7 +306,7 @@ export const ChatRoom: React.FC = () => {
                 setIsMultiSelect(false);
                 setSelectedMessageIds([]);
               }}
-              className="text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity cursor-pointer shrink-0"
+              className="ios-back-btn text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity shrink-0 pr-2 cursor-pointer"
             >
               取消
             </button>
@@ -314,9 +314,9 @@ export const ChatRoom: React.FC = () => {
             <button
               type="button"
               onClick={() => setChatSubView('list')}
-              className="flex items-center text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity -ml-1 cursor-pointer shrink-0"
+              className="ios-back-btn text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity shrink-0 pr-2 cursor-pointer"
             >
-              <ChevronLeft size={22} className="-mr-1 text-neutral-700" />
+              <ChevronLeft size={22} className="-mr-0.5 text-neutral-700" />
               <span>聊天</span>
             </button>
           )}
@@ -341,7 +341,7 @@ export const ChatRoom: React.FC = () => {
             </h2>
           </div>
 
-          {/* Right: Settings gear or Select All */}
+          {/* Right: Settings gear or Select All with >=44x44 touch hitbox */}
           {isMultiSelect ? (
             <button
               type="button"
@@ -352,7 +352,7 @@ export const ChatRoom: React.FC = () => {
                   setSelectedMessageIds(messages.map((m) => m.id));
                 }
               }}
-              className="text-[14px] text-neutral-700 hover:text-black font-medium cursor-pointer shrink-0"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-end text-[14px] text-neutral-700 hover:text-black font-medium cursor-pointer shrink-0 pl-2"
             >
               {selectedMessageIds.length === messages.length ? '全不选' : '全选'}
             </button>
@@ -360,7 +360,7 @@ export const ChatRoom: React.FC = () => {
             <button
               type="button"
               onClick={() => setChatSubView('settings')}
-              className="p-1.5 text-neutral-600 hover:text-neutral-900 active:scale-95 transition-all cursor-pointer shrink-0"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-end text-neutral-600 hover:text-neutral-900 active:scale-95 transition-all cursor-pointer shrink-0 pl-2"
               title="角色聊天设置"
             >
               <SettingsIcon size={19} />
@@ -589,8 +589,11 @@ export const ChatRoom: React.FC = () => {
       {isMultiSelect ? (
         /* Multi-select Action Bar */
         <div
-          className="px-4 py-2.5 border-t border-black/[0.08] shrink-0 flex items-center justify-between"
-          style={{ backgroundColor: customBg || '#F2F2F7' }}
+          className="px-4 pt-2.5 border-t border-black/[0.08] shrink-0 flex items-center justify-between transition-colors duration-200"
+          style={{
+            backgroundColor: customBg || '#F2F2F7',
+            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+          }}
         >
           <button
             type="button"
@@ -621,10 +624,13 @@ export const ChatRoom: React.FC = () => {
           </button>
         </div>
       ) : (
-        /* Standard Bottom Sticky Input Bar (flush against bottom, no white space) */
+        /* Standard Bottom Sticky Input Bar (flush against bottom, background extends to bottom) */
         <div
-          className="px-3 py-2 border-t border-black/[0.08] shrink-0 transition-colors duration-200"
-          style={{ backgroundColor: customBg || '#F2F2F7' }}
+          className="px-3 pt-2 border-t border-black/[0.08] shrink-0 transition-colors duration-200"
+          style={{
+            backgroundColor: customBg || '#F2F2F7',
+            paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 8px)',
+          }}
         >
           <div className="flex items-end gap-1.5 bg-[#E4E4E9] rounded-2xl px-2.5 py-1.5 focus-within:bg-[#EDEDF2] focus-within:ring-1 focus-within:ring-black/20 transition-all">
             <textarea
@@ -632,6 +638,11 @@ export const ChatRoom: React.FC = () => {
               rows={1}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
+              onFocus={() => {
+                setTimeout(() => {
+                  messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+                }, 250);
+              }}
               onKeyDown={handleKeyDown}
               placeholder={
                 hasValidProfile ? '发消息...' : '请先在「设置」中添加并配置 API...'

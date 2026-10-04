@@ -69,6 +69,7 @@ export interface Moment {
   likes: MomentLike[];
   comments: MomentComment[];
   createdAt: number;
+  accountId?: string; // 归属账号 ID (默认 'main')
 }
 
 export interface Conversation {
@@ -82,6 +83,7 @@ export interface Conversation {
   createdAt: number;
   updatedAt: number;
   messages: ChatMessage[];
+  accountId?: string; // 归属账号 ID (默认 'main')
 }
 
 export interface ApiProfile {
@@ -107,7 +109,16 @@ export interface ApiSettings {
   systemPrompt: string;
 }
 
-export type ActiveApp = 'home' | 'chat' | 'settings' | 'personas';
+export type ActiveApp =
+  | 'home'
+  | 'chat'
+  | 'settings'
+  | 'personas'
+  | 'calculator'
+  | 'notes'
+  | 'reminders'
+  | 'clock'
+  | 'weather';
 
 export type PersonaSubView = 'list' | 'create' | 'detail';
 
@@ -119,11 +130,19 @@ export type ChatTab = 'messages' | 'contacts' | 'moments' | 'profile';
 
 export type ProfileSubView = 'main' | 'edit' | 'favorites' | 'aesthetics' | 'view_profile';
 
-export interface UserProfile {
+export interface UserAccount {
+  id: string; // 'main' for primary account, or `alt_${timestamp}`
+  isMain: boolean;
   avatarUrl: string;
   nickname: string;
   username: string; // e.g. "@alex_chen"
-  bio: string;
+  bio: string; // 个性签名
+  bioDetails?: string; // 自我介绍（多行，选填，说明"我是谁、有什么设定"，会提供给 AI）
+  coverUrl?: string; // 账号专属动态封面
+  createdAt: number;
+}
+
+export interface UserProfile extends UserAccount {
   postsCount: number;
   contactsCount: number;
   likesCount: number;

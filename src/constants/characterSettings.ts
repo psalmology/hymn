@@ -26,14 +26,47 @@ export const CHAT_BACKGROUND_PRESETS: BackgroundPreset[] = [
   { id: '#CBCED3', name: '水泥灰', color: '#CBCED3', border: '#B8BCC3' },
 ];
 
+export function composeUserInfoPrompt(user?: {
+  nickname?: string;
+  bio?: string;
+  bioDetails?: string;
+}): string {
+  if (!user) return '';
+  const parts: string[] = [];
+
+  const nick = user.nickname?.trim();
+  if (nick) {
+    parts.push(`和你聊天的人昵称是 ${nick}`);
+  }
+
+  const bio = user.bio?.trim();
+  if (bio) {
+    parts.push(`个性签名是 ${bio}`);
+  }
+
+  const details = user.bioDetails?.trim();
+  if (details) {
+    parts.push(`自我介绍：${details}`);
+  }
+
+  if (parts.length === 0) return '';
+  return parts.join('，');
+}
+
 /**
  * 【system 提示的组合规则】
- * 发给 AI 的 system 提示由 "基础设定(如有) + 人设内容 + 多条回复规则" 组成，不再包含回复长度和说话风格的要求。
+ * 发给 AI 的 system 提示由以下部分拼接，空的部分跳过：
+ * 角色的人设内容 + 多条回复规则（沿用原有设置）+ 对方信息（"和你聊天的人昵称是 X，个性签名是 Y，自我介绍：Z"，取该聊天所属账号的资料）。
  */
 export function composeSystemPrompt(
   personaDescription?: string,
   allowMultipleBubbles?: boolean,
-  baseProfilePrompt?: string
+  baseProfilePrompt?: string,
+  user?: {
+    nickname?: string;
+    bio?: string;
+    bioDetails?: string;
+  }
 ): string {
   const parts: string[] = [];
 
@@ -52,6 +85,12 @@ export function composeSystemPrompt(
     parts.push(
       '【多条消息回复规则】请像真实即时通讯聊天一样，使用 `|||` 将你的回复分割成 2 到 4 条短消息发送。例如："第一句话。|||第二句话。"'
     );
+  }
+
+  // 4. 对方信息 (取该聊天所属账号的资料)
+  const userInfo = composeUserInfoPrompt(user);
+  if (userInfo) {
+    parts.push(userInfo);
   }
 
   return parts.join('\n\n');

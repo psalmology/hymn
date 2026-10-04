@@ -70,14 +70,14 @@ export const CharacterSettingsView: React.FC = () => {
   return (
     <div className="w-full h-full flex flex-col bg-[#F2F2F7] select-none overflow-y-auto">
       {/* Top Header - status bar space reserved */}
-      <div className="pt-11 px-3 bg-white/95 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-30 shrink-0">
+      <div className="ios-safe-header px-4 bg-white/95 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-30 shrink-0">
         <div className="h-11 flex items-center justify-between">
           <button
             type="button"
             onClick={() => setChatSubView('room')}
-            className="flex items-center text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity -ml-1 cursor-pointer shrink-0"
+            className="ios-back-btn text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity pr-2 shrink-0 cursor-pointer"
           >
-            <ChevronLeft size={22} className="-mr-1 text-neutral-700" />
+            <ChevronLeft size={22} className="-mr-0.5 text-neutral-700" />
             <span>聊天</span>
           </button>
 

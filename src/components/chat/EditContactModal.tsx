@@ -98,12 +98,12 @@ export const EditContactModal: React.FC<EditContactModalProps> = ({
       />
 
       {/* Top Header */}
-      <div className="pt-12 pb-2 px-4 bg-white/95 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-20">
+      <div className="ios-safe-header pb-2 px-4 bg-white/95 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-20">
         <div className="flex items-center justify-between h-9">
           <button
             type="button"
             onClick={onClose}
-            className="text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity cursor-pointer"
+            className="ios-back-btn text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity pr-2 cursor-pointer"
           >
             取消
           </button>
@@ -113,7 +113,7 @@ export const EditContactModal: React.FC<EditContactModalProps> = ({
           <button
             type="button"
             onClick={handleDone}
-            className="text-[15px] font-semibold text-neutral-900 hover:text-black active:opacity-60 transition-opacity cursor-pointer"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-end text-[15px] font-semibold text-neutral-900 hover:text-black active:opacity-60 transition-opacity cursor-pointer"
           >
             完成
           </button>

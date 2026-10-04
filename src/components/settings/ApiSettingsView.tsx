@@ -246,14 +246,14 @@ export const ApiSettingsView: React.FC = () => {
       {editorMode === 'list' && (
         <>
           {/* Header */}
-          <div className="pt-11 px-3 bg-white/90 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-30 shrink-0">
+          <div className="ios-safe-header px-4 bg-white/90 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-30 shrink-0">
             <div className="h-11 flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setSettingsSubView('main')}
-                className="flex items-center text-[15px] font-normal text-neutral-800 hover:text-neutral-900 active:opacity-60 transition-opacity -ml-1 cursor-pointer"
+                className="ios-back-btn text-[15px] font-normal text-neutral-800 hover:text-neutral-900 active:opacity-60 transition-opacity pr-2 cursor-pointer"
               >
-                <ChevronLeft size={22} className="-mr-1 text-neutral-700" />
+                <ChevronLeft size={22} className="-mr-0.5 text-neutral-700" />
                 <span>设置</span>
               </button>
 
@@ -264,10 +264,12 @@ export const ApiSettingsView: React.FC = () => {
               <button
                 type="button"
                 onClick={handleOpenAdd}
-                className="w-7 h-7 rounded-full bg-neutral-900 text-white flex items-center justify-center active:scale-90 transition-transform shadow-xs cursor-pointer"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-end text-neutral-900 cursor-pointer"
                 title="新增配置"
               >
-                <Plus size={17} strokeWidth={2.5} />
+                <span className="w-7 h-7 rounded-full bg-neutral-900 text-white flex items-center justify-center active:scale-90 transition-transform shadow-xs">
+                  <Plus size={17} strokeWidth={2.5} />
+                </span>
               </button>
             </div>
           </div>
@@ -447,14 +449,14 @@ export const ApiSettingsView: React.FC = () => {
       {editorMode === 'edit' && (
         <>
           {/* Header */}
-          <div className="pt-11 px-3 bg-white/90 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-30 shrink-0">
+          <div className="ios-safe-header px-4 bg-white/90 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-30 shrink-0">
             <div className="h-11 flex items-center justify-between">
               <button
                 type="button"
                 onClick={() => setEditorMode('list')}
-                className="flex items-center text-[15px] font-normal text-neutral-600 hover:text-neutral-900 active:opacity-60 transition-opacity -ml-1 cursor-pointer"
+                className="ios-back-btn text-[15px] font-normal text-neutral-600 hover:text-neutral-900 active:opacity-60 transition-opacity pr-2 cursor-pointer"
               >
-                <ChevronLeft size={22} className="-mr-1 text-neutral-600" />
+                <ChevronLeft size={22} className="-mr-0.5 text-neutral-600" />
                 <span>取消</span>
               </button>
 
@@ -465,7 +467,7 @@ export const ApiSettingsView: React.FC = () => {
               <button
                 type="button"
                 onClick={handleSaveProfile}
-                className="text-[15px] font-semibold text-neutral-900 hover:text-black active:opacity-60 transition-opacity cursor-pointer mr-1"
+                className="min-w-[44px] min-h-[44px] flex items-center justify-end text-[15px] font-semibold text-neutral-900 hover:text-black active:opacity-60 transition-opacity cursor-pointer"
               >
                 保存
               </button>

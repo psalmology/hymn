@@ -1,18 +1,32 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, Search, ChevronRight, ChevronLeft, Pin, MessageSquare, BookUser, Sparkles, X } from 'lucide-react';
+import {
+  Plus,
+  Search,
+  ChevronLeft,
+  Pin,
+  MessageSquare,
+  UserPlus,
+  Users,
+} from 'lucide-react';
 import { useChat } from '../../context/ChatContext';
+import { UserAccount } from '../../types';
+import { AddFriendModal } from './AddFriendModal';
+import { CreateAltModal } from './CreateAltModal';
 
 export const ConversationList: React.FC = () => {
   const {
     conversations,
-    personas,
+    currentAccount,
     selectConversation,
-    createNewConversationWithPersona,
     goHome,
   } = useChat();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [showPersonaPicker, setShowPersonaPicker] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [showAddFriendModal, setShowAddFriendModal] = useState(false);
+  const [targetAccountForAdd, setTargetAccountForAdd] = useState<UserAccount | undefined>(undefined);
+  const [headerSubtitleForAdd, setHeaderSubtitleForAdd] = useState<string | undefined>(undefined);
+  const [showCreateAltModal, setShowCreateAltModal] = useState(false);
 
   // Filter and sort conversations: Pinned first, then by updatedAt desc
   const filteredConversations = useMemo(() => {
@@ -54,34 +68,93 @@ export const ConversationList: React.FC = () => {
     return `${month}/${day}`;
   };
 
-  const handleSelectPersonaToStart = (personaId?: string) => {
-    setShowPersonaPicker(false);
-    createNewConversationWithPersona(personaId);
-  };
-
   return (
-    <div className="w-full h-full flex flex-col bg-[#F2F2F7] select-none">
+    <div className="w-full h-full flex flex-col bg-[#F2F2F7] select-none relative">
       {/* Top Header */}
-      <div className="pt-12 pb-2 px-4 bg-[#F2F2F7]/90 backdrop-blur-xl border-b border-black/[0.06] sticky top-0 z-20">
-        <div className="flex items-center justify-between h-8 mb-1">
+      <div className="ios-safe-header pb-2 px-4 bg-[#F2F2F7]/90 backdrop-blur-xl border-b border-black/[0.06] sticky top-0 z-20">
+        <div className="flex items-center justify-between h-9 mb-1 relative">
           <button
             type="button"
             onClick={goHome}
-            className="flex items-center text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity -ml-1.5 cursor-pointer"
+            className="ios-back-btn text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity pr-2 cursor-pointer"
             title="返回桌面 (Esc)"
           >
-            <ChevronLeft size={22} className="-mr-1 text-neutral-700" />
+            <ChevronLeft size={22} className="-mr-0.5 text-neutral-700" />
             <span>返回</span>
           </button>
 
           <button
             type="button"
-            onClick={() => setShowPersonaPicker(true)}
-            className="w-7 h-7 rounded-full bg-neutral-900 text-white flex items-center justify-center active:scale-90 transition-transform shadow-xs cursor-pointer"
-            title="新建对话"
+            onClick={() => setShowMenu((prev) => !prev)}
+            className="min-w-[44px] min-h-[44px] flex items-center justify-end text-neutral-900 cursor-pointer"
+            title="更多选项"
           >
-            <Plus size={17} strokeWidth={2.5} />
+            <span className="w-7 h-7 rounded-full bg-neutral-900 text-white flex items-center justify-center active:scale-90 transition-transform shadow-xs">
+              <Plus size={17} strokeWidth={2.5} />
+            </span>
           </button>
+
+          {/* iOS-Style Dropdown Menu under '+' */}
+          {showMenu && (
+            <>
+              {/* Tap outside backdrop */}
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setShowMenu(false)}
+              />
+
+              <div
+                className="absolute right-0 top-10 z-50 w-52 bg-white/95 backdrop-blur-xl rounded-2xl shadow-xl border border-black/[0.08] overflow-hidden py-1 divide-y divide-black/[0.06] animate-in fade-in zoom-in-95 origin-top-right duration-150 select-none"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* 1. 添加好友: 用当前账号添加 */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenu(false);
+                    setTargetAccountForAdd(currentAccount);
+                    setHeaderSubtitleForAdd(undefined);
+                    setShowAddFriendModal(true);
+                  }}
+                  className="w-full px-3.5 py-3 flex items-center gap-3 text-left hover:bg-neutral-100/70 active:bg-neutral-200/60 transition-colors cursor-pointer group"
+                >
+                  <div className="w-7 h-7 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-800 shrink-0 group-hover:bg-neutral-200 transition-colors">
+                    <UserPlus size={16} strokeWidth={2} />
+                  </div>
+                  <div>
+                    <div className="text-[14px] font-semibold text-neutral-900 leading-tight">
+                      添加好友
+                    </div>
+                    <div className="text-[11px] text-neutral-400 leading-tight mt-0.5">
+                      用当前账号添加
+                    </div>
+                  </div>
+                </button>
+
+                {/* 2. 创建小号添加好友 */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenu(false);
+                    setShowCreateAltModal(true);
+                  }}
+                  className="w-full px-3.5 py-3 flex items-center gap-3 text-left hover:bg-neutral-100/70 active:bg-neutral-200/60 transition-colors cursor-pointer group"
+                >
+                  <div className="w-7 h-7 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-800 shrink-0 group-hover:bg-neutral-200 transition-colors">
+                    <Users size={16} strokeWidth={2} />
+                  </div>
+                  <div>
+                    <div className="text-[14px] font-semibold text-neutral-900 leading-tight">
+                      创建小号添加好友
+                    </div>
+                    <div className="text-[11px] text-neutral-400 leading-tight mt-0.5">
+                      先建小号，再加好友
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="flex items-baseline justify-between">
@@ -136,10 +209,14 @@ export const ConversationList: React.FC = () => {
             {!searchQuery && (
               <button
                 type="button"
-                onClick={() => setShowPersonaPicker(true)}
+                onClick={() => {
+                  setTargetAccountForAdd(currentAccount);
+                  setHeaderSubtitleForAdd(undefined);
+                  setShowAddFriendModal(true);
+                }}
                 className="mt-4 px-4 py-2 bg-neutral-900 text-white text-[13px] font-medium rounded-full active:scale-95 transition-transform cursor-pointer"
               >
-                新建会话
+                添加好友
               </button>
             )}
           </div>
@@ -156,62 +233,53 @@ export const ConversationList: React.FC = () => {
                 : lastMsg.content || '新消息'
               : '新会话，尚未发送消息';
 
-            const displayTitle = conv.remark?.trim() || conv.title || '新会话';
-            const isPinned = Boolean(conv.settings?.isPinned);
-            const avatar = conv.avatarUrl || conv.settings?.avatarUrl;
+            const firstLetter = (conv.remark || conv.title || '角').slice(0, 1);
+            const isPinned = conv.settings?.isPinned === true;
 
             return (
               <div
                 key={conv.id}
-                className={`relative overflow-hidden transition-colors ${
-                  isPinned ? 'bg-[#F9F9FB] active:bg-[#F2F2F5]' : 'bg-white active:bg-neutral-50'
+                onClick={() => selectConversation(conv.id)}
+                className={`p-3.5 flex items-center gap-3 active:bg-neutral-200/60 transition-colors cursor-pointer select-none relative ${
+                  isPinned ? 'bg-neutral-100/70' : 'bg-transparent'
                 }`}
               >
-                <div
-                  className="flex items-center px-4 py-3.5 cursor-pointer"
-                  onClick={() => selectConversation(conv.id)}
-                >
-                  {/* Left Avatar */}
-                  <div className="relative w-11 h-11 rounded-full overflow-hidden bg-gradient-to-tr from-[#3a3a3c] to-[#636366] text-white flex items-center justify-center shrink-0 shadow-xs mr-3">
-                    {avatar ? (
-                      <img
-                        src={avatar}
-                        alt={displayTitle}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-[14px] font-bold tracking-tight">
-                        {displayTitle.slice(0, 1) || 'AI'}
-                      </span>
-                    )}
-                    {isPinned && (
-                      <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full bg-neutral-800 text-white flex items-center justify-center shadow-2xs border border-white">
-                        <Pin size={8} className="fill-white" />
-                      </span>
-                    )}
+                {/* Pinned visual icon */}
+                {isPinned && (
+                  <div className="absolute top-2 right-2 text-neutral-400">
+                    <Pin size={12} className="rotate-45 fill-neutral-400" />
+                  </div>
+                )}
+
+                {/* Avatar with Squircle styling */}
+                <div className="w-12 h-12 rounded-[22%] overflow-hidden bg-[#D4D5DC] flex items-center justify-center shrink-0 border border-black/[0.06] shadow-2xs">
+                  {conv.avatarUrl ? (
+                    <img
+                      src={conv.avatarUrl}
+                      alt={conv.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-[18px] font-bold text-neutral-700">
+                      {firstLetter}
+                    </span>
+                  )}
+                </div>
+
+                {/* Text Content */}
+                <div className="flex-1 min-w-0 pr-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[16px] font-semibold text-neutral-900 truncate">
+                      {conv.remark || conv.title}
+                    </h3>
+                    <span className="text-[12px] text-neutral-400 shrink-0 ml-2">
+                      {formatTimestamp(conv.updatedAt || conv.createdAt)}
+                    </span>
                   </div>
 
-                  {/* Middle Content */}
-                  <div className="flex-1 min-w-0 pr-1">
-                    <div className="flex items-center justify-between mb-0.5">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <h3 className="text-[15px] font-semibold text-neutral-900 truncate">
-                          {displayTitle}
-                        </h3>
-                        {isPinned && (
-                          <span className="text-[10px] text-neutral-500 bg-neutral-200/80 px-1.5 py-0.2 rounded font-normal shrink-0">
-                            置顶
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-[11px] text-neutral-400 font-normal shrink-0 ml-2">
-                        {formatTimestamp(conv.updatedAt || conv.createdAt)}
-                      </span>
-                    </div>
-                    <p className="text-[13px] text-neutral-500 truncate leading-snug">
-                      {previewText}
-                    </p>
-                  </div>
+                  <p className="text-[13px] text-neutral-500 truncate mt-0.5 leading-normal">
+                    {previewText}
+                  </p>
                 </div>
               </div>
             );
@@ -219,102 +287,30 @@ export const ConversationList: React.FC = () => {
         )}
       </div>
 
-      {/* Persona Picker Modal (Requirement 4.2) */}
-      {showPersonaPicker && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/35 backdrop-blur-[2px] animate-in fade-in duration-150"
-          onClick={() => setShowPersonaPicker(false)}
-        >
-          <div
-            className="w-full sm:max-w-[340px] max-h-[82vh] bg-white dark:bg-[#252528] rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom duration-200"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="p-4 border-b border-black/[0.06] flex items-center justify-between">
-              <div>
-                <h3 className="text-[16px] font-semibold text-neutral-900">
-                  选择对话人设
-                </h3>
-                <p className="text-[12px] text-neutral-500 mt-0.5">
-                  为新对话绑定一个人设或直接开启
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowPersonaPicker(false)}
-                className="w-7 h-7 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-500 cursor-pointer"
-              >
-                <X size={15} />
-              </button>
-            </div>
+      {/* ================= ADD FRIEND MODAL ================= */}
+      <AddFriendModal
+        isOpen={showAddFriendModal}
+        targetAccount={targetAccountForAdd}
+        headerSubtitle={headerSubtitleForAdd}
+        onClose={() => {
+          setShowAddFriendModal(false);
+          setTargetAccountForAdd(undefined);
+          setHeaderSubtitleForAdd(undefined);
+        }}
+      />
 
-            {/* Persona List Scroll Area */}
-            <div className="flex-1 overflow-y-auto p-3 space-y-2">
-              {/* Option 1: 不使用人设 */}
-              <button
-                type="button"
-                onClick={() => handleSelectPersonaToStart(undefined)}
-                className="w-full p-3 rounded-2xl bg-neutral-50 hover:bg-neutral-100 active:bg-neutral-200/80 transition-colors flex items-center gap-3 text-left border border-black/5 cursor-pointer"
-              >
-                <div className="w-10 h-10 rounded-full bg-neutral-200 text-neutral-600 flex items-center justify-center shrink-0">
-                  <Sparkles size={18} />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-[14px] font-semibold text-neutral-900 leading-tight">
-                    不使用人设
-                  </h4>
-                  <p className="text-[12px] text-neutral-500 truncate mt-0.5">
-                    标准通用智能对话，不附加特定角色设定
-                  </p>
-                </div>
-                <ChevronRight size={16} className="text-neutral-400 shrink-0" />
-              </button>
-
-              {/* Option 2+: Personas from Library */}
-              {personas.map((persona) => {
-                const firstLine =
-                  persona.description.split('\n').filter((l) => l.trim().length > 0)[0] ||
-                  '暂无设定说明';
-
-                return (
-                  <button
-                    key={persona.id}
-                    type="button"
-                    onClick={() => handleSelectPersonaToStart(persona.id)}
-                    className="w-full p-3 rounded-2xl bg-white hover:bg-neutral-50 active:bg-neutral-100 transition-colors flex items-center gap-3 text-left border border-black/[0.06] shadow-3xs cursor-pointer"
-                  >
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-[#3a3a3c] to-[#636366] text-white flex items-center justify-center shrink-0 shadow-xs">
-                      <span className="text-[14px] font-semibold">
-                        {persona.name.slice(0, 1)}
-                      </span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-[14px] font-semibold text-neutral-900 leading-tight">
-                        {persona.name}
-                      </h4>
-                      <p className="text-[12px] text-neutral-500 truncate mt-0.5">
-                        {firstLine}
-                      </p>
-                    </div>
-                    <ChevronRight size={16} className="text-neutral-400 shrink-0" />
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Cancel Footer */}
-            <div className="p-3 border-t border-black/[0.06] bg-[#F9F9FB]">
-              <button
-                type="button"
-                onClick={() => setShowPersonaPicker(false)}
-                className="w-full py-2.5 text-[14px] font-medium text-neutral-600 bg-white border border-black/10 rounded-xl active:bg-neutral-100 cursor-pointer"
-              >
-                取消
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ================= CREATE ALT MODAL (FLOW 2: 先创建小号再加好友) ================= */}
+      <CreateAltModal
+        isOpen={showCreateAltModal}
+        mode="add_friend_flow"
+        onClose={() => setShowCreateAltModal(false)}
+        onNextStep={(createdAccount) => {
+          setShowCreateAltModal(false);
+          setTargetAccountForAdd(createdAccount);
+          setHeaderSubtitleForAdd(`为【${createdAccount.nickname}】添加好友`);
+          setShowAddFriendModal(true);
+        }}
+      />
     </div>
   );
 };

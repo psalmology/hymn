@@ -1,14 +1,25 @@
 import { UserProfile, ChatThemeSettings } from '../types';
 
 export const USER_PROFILE_STORAGE_KEY = 'ios_web_user_profile_v1';
+export const ACCOUNTS_STORAGE_KEY = 'ios_web_accounts_v1';
+export const ACTIVE_ACCOUNT_ID_KEY = 'ios_web_active_account_id_v1';
 export const FAVORITES_STORAGE_KEY = 'ios_web_favorites_v1';
 export const CHAT_THEME_STORAGE_KEY = 'ios_web_chat_theme_v1';
 
-export const DEFAULT_USER_PROFILE: UserProfile = {
+export const DEFAULT_MAIN_ACCOUNT = {
+  id: 'main',
+  isMain: true,
   avatarUrl: '',
   nickname: 'iOS 用户',
   username: '@alex_chen',
   bio: '保持热爱，奔赴山海 ✨',
+  bioDetails: '',
+  coverUrl: '',
+  createdAt: 0,
+};
+
+export const DEFAULT_USER_PROFILE: UserProfile = {
+  ...DEFAULT_MAIN_ACCOUNT,
   postsCount: 0,
   contactsCount: 0,
   likesCount: 0,

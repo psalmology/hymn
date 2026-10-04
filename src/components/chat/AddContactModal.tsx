@@ -117,19 +117,19 @@ export const AddContactModal: React.FC<AddContactModalProps> = ({
       />
 
       {/* Top Header */}
-      <div className="pt-12 pb-2 px-4 bg-white/95 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-20">
+      <div className="ios-safe-header pb-2 px-4 bg-white/95 backdrop-blur-xl border-b border-black/[0.08] sticky top-0 z-20">
         <div className="flex items-center justify-between h-9">
           <button
             type="button"
             onClick={onClose}
-            className="text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity cursor-pointer"
+            className="ios-back-btn text-[15px] font-normal text-neutral-800 hover:text-black active:opacity-60 transition-opacity pr-2 cursor-pointer"
           >
             {addedConvId ? '关闭' : '取消'}
           </button>
           <h2 className="text-[16px] font-semibold text-neutral-900">
             添加好友
           </h2>
-          <div className="w-10" />
+          <div className="w-11" />
         </div>
 
         {/* Tab Switcher */}
